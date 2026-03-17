@@ -1,0 +1,49 @@
+local HttpService = game:GetService("HttpService")
+local Players     = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+
+--- ══════════════════════════════════════
+--- CAMBIA ESTAS DOS COSAS:
+local _API = "https://jmods-whitelist-api-k3mg.vercel.app/api/check"
+local _TOKEN = "jmods2024secreto"
+--- ══════════════════════════════════════
+
+local function getHWID()
+    if gethwid     then return tostring(gethwid())     end
+    if getdeviceid then return tostring(getdeviceid()) end
+    if identifyexecutor then
+        local name, ver = identifyexecutor()
+        return "exec_" .. tostring(name) .. "_" .. tostring(ver or "0")
+    end
+    return "unknown_" .. tostring(LocalPlayer.UserId)
+end
+
+local WL = {}
+
+function WL:IsAllowed(scriptName)
+    local ok, response = pcall(function()
+        return HttpService:RequestAsync({
+            Url    = _API,
+            Method = "POST",
+            Headers = { ["Content-Type"] = "application/json" },
+            Body   = HttpService:JSONEncode({
+                userId     = LocalPlayer.UserId,
+                username   = LocalPlayer.Name,
+                hwid       = getHWID(),
+                scriptName = scriptName or "",
+                token      = _TOKEN
+            })
+        })
+    end)
+
+    if not ok or not response or response.StatusCode ~= 200 then
+        return false
+    end
+
+    local pok, data = pcall(HttpService.JSONDecode, HttpService, response.Body)
+    if not pok or type(data) ~= "table" then return false end
+
+    return data.allowed == true
+end
+
+return WL
