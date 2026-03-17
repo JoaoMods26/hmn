@@ -1,12 +1,15 @@
+
+
+--- ══════════════════════════════════════
+--- ══════════════════════════════════════
+--- JmodsWhitelist.lua v2.1 — by joao_mods
 local HttpService = game:GetService("HttpService")
 local Players     = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 
---- ══════════════════════════════════════
 --- CAMBIA ESTAS DOS COSAS:
 local _API = "https://jmods-whitelist-api-k3mg.vercel.app/api/check"
 local _TOKEN = "jmods2024secreto"
---- ══════════════════════════════════════
 
 local function getHWID()
     if gethwid     then return tostring(gethwid())     end
@@ -21,29 +24,56 @@ end
 local WL = {}
 
 function WL:IsAllowed(scriptName)
-    local ok, response = pcall(function()
-        return HttpService:RequestAsync({
-            Url    = _API,
-            Method = "POST",
-            Headers = { ["Content-Type"] = "application/json" },
-            Body   = HttpService:JSONEncode({
-                userId     = LocalPlayer.UserId,
-                username   = LocalPlayer.Name,
-                hwid       = getHWID(),
-                scriptName = scriptName or "",
-                token      = _TOKEN
-            })
-        })
-    end)
+    local body = HttpService:JSONEncode({
+        userId     = LocalPlayer.UserId,
+        username   = LocalPlayer.Name,
+        hwid       = getHWID(),
+        scriptName = scriptName or "",
+        token      = _TOKEN
+    })
 
-    if not ok or not response or response.StatusCode ~= 200 then
-        return false
+    local responseBody = nil
+
+    --- Mismo método que el webhook — funciona en todos los executors
+    local req = (syn and syn.request) or http_request or request or (http and http.request)
+
+    if req then
+        local ok, res = pcall(function()
+            return req({
+                Url     = _API,
+                Method  = "POST",
+                Headers = { ["Content-Type"] = "application/json" },
+                Body    = body
+            })
+        end)
+        if ok and res and res.StatusCode == 200 then
+            responseBody = res.Body
+        end
     end
 
-    local pok, data = pcall(HttpService.JSONDecode, HttpService, response.Body)
+    --- Fallback: HttpService:RequestAsync por si acaso
+    if not responseBody then
+        local ok2, res2 = pcall(function()
+            return HttpService:RequestAsync({
+                Url     = _API,
+                Method  = "POST",
+                Headers = { ["Content-Type"] = "application/json" },
+                Body    = body
+            })
+        end)
+        if ok2 and res2 and res2.StatusCode == 200 then
+            responseBody = res2.Body
+        end
+    end
+
+    if not responseBody then return false end
+
+    local pok, data = pcall(HttpService.JSONDecode, HttpService, responseBody)
     if not pok or type(data) ~= "table" then return false end
 
     return data.allowed == true
 end
+
+return WL
 
 return WL
