@@ -1,10 +1,7 @@
 
 
---- ══════════════════════════════════════
---- ══════════════════════════════════════
---- JmodsWhitelist.lua v2.1 — by joao_mods
 local HttpService = game:GetService("HttpService")
-local Players     = game:GetService("Players")
+local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 
 --- CAMBIA ESTAS DOS COSAS:
@@ -12,7 +9,7 @@ local _API = "https://jmods-whitelist-api-k3mg.vercel.app/api/check"
 local _TOKEN = "jmods2024secreto"
 
 local function getHWID()
-    if gethwid     then return tostring(gethwid())     end
+    if gethwid then return tostring(gethwid()) end
     if getdeviceid then return tostring(getdeviceid()) end
     if identifyexecutor then
         local name, ver = identifyexecutor()
@@ -34,7 +31,6 @@ function WL:IsAllowed(scriptName)
 
     local responseBody = nil
 
-    --- Mismo método que el webhook — funciona en todos los executors
     local req = (syn and syn.request) or http_request or request or (http and http.request)
 
     if req then
@@ -42,7 +38,7 @@ function WL:IsAllowed(scriptName)
             return req({
                 Url     = _API,
                 Method  = "POST",
-                Headers = { ["Content-Type"] = "application/json" },
+                Headers = {["Content-Type"] = "application/json"},
                 Body    = body
             })
         end)
@@ -51,13 +47,12 @@ function WL:IsAllowed(scriptName)
         end
     end
 
-    --- Fallback: HttpService:RequestAsync por si acaso
     if not responseBody then
         local ok2, res2 = pcall(function()
             return HttpService:RequestAsync({
                 Url     = _API,
                 Method  = "POST",
-                Headers = { ["Content-Type"] = "application/json" },
+                Headers = {["Content-Type"] = "application/json"},
                 Body    = body
             })
         end)
