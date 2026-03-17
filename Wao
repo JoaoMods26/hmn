@@ -70,5 +70,3 @@ function WL:IsAllowed(scriptName)
 end
 
 return WL
-
-return WL
