@@ -1,7 +1,7 @@
 local HttpService = game:GetService("HttpService")
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
-local _API = "https://jmods-whitelist-api-k3mg.vercel.app/api/check"
+local _API = "https://jmods-whitelist-api-j7i2.vercel.app/api/check"
 local _TOKEN = "jmods2024secreto"
 
 local function getHWID()
