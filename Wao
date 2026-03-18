@@ -16,15 +16,14 @@ end
 
 local WL = {}
 
---- placeId: nil = usa el juego actual automaticamente
----           189707 = solo acepta si tiene acceso a ese juego o a global
-function WL:IsAllowed(placeId)
+function WL:IsAllowed(requiredPlaceId)
     local body = HttpService:JSONEncode({
-        userId  = LocalPlayer.UserId,
-        username = LocalPlayer.Name,
-        hwid    = getHWID(),
-        placeId = placeId or game.PlaceId,
-        token   = _TOKEN
+        userId          = LocalPlayer.UserId,
+        username        = LocalPlayer.Name,
+        hwid            = getHWID(),
+        currentPlaceId  = game.PlaceId,        -- juego donde está AHORA
+        requiredPlaceId = requiredPlaceId or 0, -- juego que requiere el script
+        token           = _TOKEN
     })
 
     local responseBody = nil
