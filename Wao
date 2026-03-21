@@ -1,8 +1,9 @@
 local HttpService = game:GetService("HttpService")
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
-local _API = "https://jmods-whitelist-api-j7i2.vercel.app/api/check"
-local _TOKEN = "jmods2024secreto"
+
+local SUPA_URL = "https://lrkugsvzqjjycinbvevy.supabase.co"
+local SUPA_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imxya3Vnc3Z6cWpqeWNpbmJ2ZXZ5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM4MDMwMjMsImV4cCI6MjA4OTM3OTAyM30.pT01iuLS7C_HAhnQtdu1IcTesDHl061oFIO3m4YPdyU"
 
 local function getHWID()
     if gethwid then return tostring(gethwid()) end
@@ -15,52 +16,38 @@ local function getHWID()
 end
 
 local WL = {}
-
 function WL:IsAllowed(requiredPlaceId)
-    local body = HttpService:JSONEncode({
-        userId          = LocalPlayer.UserId,
-        username        = LocalPlayer.Name,
-        hwid            = getHWID(),
-        currentPlaceId  = game.PlaceId,        -- juego donde está AHORA
-        requiredPlaceId = requiredPlaceId or 0, -- juego que requiere el script
-        token           = _TOKEN
-    })
-
-    local responseBody = nil
     local req = (syn and syn.request) or http_request or request or (http and http.request)
-
-    if req then
-        local ok, res = pcall(function()
-            return req({
-                Url     = _API,
-                Method  = "POST",
-                Headers = {["Content-Type"] = "application/json"},
-                Body    = body
-            })
-        end)
-        if ok and res and res.StatusCode == 200 then
-            responseBody = res.Body
+    if not req then return false end
+    local url = SUPA_URL .. "/rest/v1/whitelist?user_id=eq." .. tostring(LocalPlayer.UserId)
+    local ok, res = pcall(function()
+        return req({
+            Url = url,
+            Method = "GET",
+            Headers = {
+                ["Content-Type"] = "application/json",
+                ["apikey"] = SUPA_KEY,
+                ["Authorization"] = "Bearer " .. SUPA_KEY
+            }
+        })
+    end)
+    if not ok or not res or res.StatusCode ~= 200 then return false end
+    local pok, data = pcall(HttpService.JSONDecode, HttpService, res.Body)
+    if not pok or type(data) ~= "table" or #data == 0 then return false end
+    local hwid = getHWID()
+    local entry = nil
+    for _, e in ipairs(data) do
+        if e.place_id == 0 or tostring(e.place_id) == tostring(requiredPlaceId) then
+            entry = e; break
         end
     end
-
-    if not responseBody then
-        local ok2, res2 = pcall(function()
-            return HttpService:RequestAsync({
-                Url     = _API,
-                Method  = "POST",
-                Headers = {["Content-Type"] = "application/json"},
-                Body    = body
-            })
-        end)
-        if ok2 and res2 and res2.StatusCode == 200 then
-            responseBody = res2.Body
-        end
-    end
-
-    if not responseBody then return false end
-    local pok, data = pcall(HttpService.JSONDecode, HttpService, responseBody)
-    if not pok or type(data) ~= "table" then return false end
-    return data.allowed == true
+    if not entry then return false end
+    if entry.place_id ~= 0 and tostring(game.PlaceId) ~= tostring(entry.place_id) then return false end
+    if string.lower(entry.username) ~= string.lower(LocalPlayer.Name) then return false end
+    if entry.hwid ~= hwid then return false end
+    if entry.banned then return false end
+    if not entry.active then return false end
+    if entry.expires ~= 0 and os.time() > entry.expires then return false end
+    return true
 end
-
 return WL
